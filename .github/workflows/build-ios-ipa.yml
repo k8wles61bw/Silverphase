@@ -1,0 +1,51 @@
+name: Build iOS Unsigned IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          XCODE_APP=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using Xcode: $XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+
+      - name: Generate Xcode project
+        run: python3 ios/Silverphase/Tools/gen-project.py
+
+      - name: Build Release (unsigned)
+        run: |
+          xcodebuild -project ios/Silverphase/Silverphase.xcodeproj \
+            -scheme Silverphase \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            build
+
+      - name: Package IPA
+        run: |
+          APP_PATH=$(find build/DerivedData -name "Silverphase.app" -type d | head -1)
+          echo "Found app at: $APP_PATH"
+          mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/
+          cd build/ipa
+          zip -r ../Silverphase-1.2.5-unsigned-ipa.zip Payload
+          mv ../Silverphase-1.2.5-unsigned-ipa.zip ../Silverphase-1.2.5-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Silverphase-iOS-unsigned-IPA
+          path: build/Silverphase-1.2.5-unsigned.ipa
+          retention-days: 7
