@@ -17,6 +17,11 @@ jobs:
           sudo xcode-select -s "$XCODE_APP"
           xcodebuild -version
 
+      - name: Fix API compatibility
+        run: |
+          # Fix: videoRotationAngleRelative -> videoRotationAngle(for:)
+          sed -i '' 's/rotation\.videoRotationAngleRelative(toDeviceOrientation: pose\.videoOrientation)/rotation.videoRotationAngle(for: pose.videoOrientation)/g' ios/Silverphase/Sources/MobileCameraCapture.swift
+
       - name: Generate Xcode project
         run: python3 ios/Silverphase/Tools/gen-project.py
 
