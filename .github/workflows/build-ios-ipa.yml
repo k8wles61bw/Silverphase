@@ -19,7 +19,6 @@ jobs:
 
       - name: Fix API compatibility
         run: |
-          # Fix: videoRotationAngleRelative -> videoRotationAngle(for:)
           sed -i '' 's/rotation\.videoRotationAngleRelative(toDeviceOrientation: pose\.videoOrientation)/rotation.videoRotationAngle(for: pose.videoOrientation)/g' ios/Silverphase/Sources/MobileCameraCapture.swift
 
       - name: Generate Xcode project
@@ -36,7 +35,11 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
-            build
+            build > build.log 2>&1 || {
+              echo "=== BUILD FAILED, LAST 200 LINES ==="
+              tail -200 build.log
+              exit 1
+            }
 
       - name: Package IPA
         run: |
